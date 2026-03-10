@@ -1,50 +1,81 @@
-import '../models/app_user.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
-  AppUser? _currentUser;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  AppUser? get currentUser => _currentUser;
+  User? get currentUser => _auth.currentUser;
 
-  Future<AppUser> signUp({
+  Future<UserCredential> signUp({
     required String email,
     required String password,
     required String name,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    _currentUser = AppUser(
-      uid: 'demo_uid_001',
+    final credential = await _auth.createUserWithEmailAndPassword(
       email: email,
-      name: name,
-      createdAt: DateTime.now(),
+      password: password,
     );
 
-    return _currentUser!;
+    final user = credential.user;
+    if (user == null) {
+      throw Exception('User account was not created.');
+    }
+
+    await user.updateDisplayName(name);
+    await user.sendEmailVerification();
+
+    await _firestore.collection('users').doc(user.uid).set({
+      'uid': user.uid,
+      'email': email,
+      'name': name,
+      'createdAt': Timestamp.now(),
+    });
+
+    return credential;
   }
 
-  Future<AppUser> login({
+  Future<UserCredential> login({
     required String email,
     required String password,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    _currentUser = AppUser(
-      uid: 'demo_uid_001',
+    final credential = await _auth.signInWithEmailAndPassword(
       email: email,
-      name: 'Demo User',
-      createdAt: DateTime.now(),
+      password: password,
     );
 
-    return _currentUser!;
+    await credential.user?.reload();
+    final refreshedUser = FirebaseAuth.instance.currentUser;
+
+    if (refreshedUser == null) {
+      throw Exception('Unable to load user.');
+    }
+
+    if (!refreshedUser.emailVerified) {
+      await _auth.signOut();
+      throw Exception('Please verify your email before logging in.');
+    }
+
+    return credential;
+  }
+
+  Future<void> resendVerificationEmail() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('No signed-in user found.');
+    }
+    await user.sendEmailVerification();
+  }
+
+  Future<bool> checkEmailVerified() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+
+    await user.reload();
+    return FirebaseAuth.instance.currentUser?.emailVerified ?? false;
   }
 
   Future<void> logout() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _currentUser = null;
-  }
-
-  Future<bool> isEmailVerified() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return true;
+    await _auth.signOut();
   }
 }

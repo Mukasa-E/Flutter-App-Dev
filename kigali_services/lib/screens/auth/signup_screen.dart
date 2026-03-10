@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/utils/validators.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/custom_text_field.dart';
-import '../home/home_screen.dart';
+import 'verify_email_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -34,9 +34,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     if (_passwordController.text.trim() !=
         _confirmPasswordController.text.trim()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
       return;
     }
 
@@ -53,7 +53,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (success) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const VerifyEmailScreen()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

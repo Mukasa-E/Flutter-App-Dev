@@ -81,7 +81,7 @@ class ListingDetailScreen extends StatelessWidget {
                     final review = Review(
                       id: DateTime.now().millisecondsSinceEpoch.toString(),
                       listingId: listing.id,
-                      userName: authProvider.user?.name ?? 'Guest',
+                      userName: authProvider.user?.displayName ?? 'Guest',
                       rating: selectedRating,
                       comment: commentController.text.trim(),
                       timestamp: DateTime.now(),

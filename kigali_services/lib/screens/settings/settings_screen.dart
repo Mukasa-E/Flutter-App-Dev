@@ -30,7 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Card(
             child: ListTile(
               leading: const Icon(Icons.person),
-              title: Text(user?.name ?? 'Guest'),
+              title: Text(user?.displayName ?? 'Guest'),
               subtitle: Text(user?.email ?? 'No email'),
             ),
           ),
