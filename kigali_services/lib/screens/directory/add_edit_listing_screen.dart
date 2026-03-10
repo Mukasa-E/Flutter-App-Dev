@@ -114,7 +114,7 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _selectedCategory,
+                initialValue: _selectedCategory,
                 items: appCategories
                     .where((item) => item != 'All')
                     .map(

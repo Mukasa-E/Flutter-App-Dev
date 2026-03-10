@@ -33,7 +33,7 @@ class BookmarksScreen extends StatelessWidget {
                 Switch(
                   value: bookmarkedListings.isNotEmpty,
                   onChanged: null,
-                  activeColor: Colors.amber,
+                  activeThumbColor: Colors.amber,
                 ),
               ],
             ),

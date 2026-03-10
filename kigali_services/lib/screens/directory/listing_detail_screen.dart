@@ -289,7 +289,7 @@ class ListingDetailScreen extends StatelessWidget {
                 ),
               ),
             );
-          }).toList(),
+          }),
 
           if (reviews.isEmpty)
             Center(
