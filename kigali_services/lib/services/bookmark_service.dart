@@ -2,15 +2,40 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'logger_service.dart';
 
+/// BookmarkService handles all bookmark operations in Firestore.
+///
+/// Bookmarks are stored in a hierarchical structure for security:
+/// `/users/{userId}/bookmarks/{listingId}`
+///
+/// Benefits of this structure:
+/// - Security: Users can only access their own bookmarks (via Firestore rules)
+/// - Performance: Queries are scoped to individual users
+/// - Privacy: Bookmark data is isolated per user
+///
+/// Data Format:
+/// ```
+/// /users/{userId}/bookmarks/{listingId}
+///   ├─ listingId (string: foreign key to /listings/{id})
+///   └─ timestamp (Timestamp: when bookmark was created)
+/// ```
 class BookmarkService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// Gets the bookmarks subcollection reference for a specific user.
+  ///
+  /// This creates a scoped reference to user-specific data in Firestore.
+  /// The subcollection path is: /users/{userId}/bookmarks
   CollectionReference<Map<String, dynamic>> _getBookmarksCollection(
     String userId,
   ) {
     return _firestore.collection('users').doc(userId).collection('bookmarks');
   }
 
+  /// Retrieves all bookmarked listing IDs for a user as a real-time stream.
+  ///
+  /// The stream automatically updates when bookmarks are added or removed.
+  /// This allows the UI to reflect bookmark changes across all screens
+  /// without manual refresh.
   Stream<List<String>> getBookmarkedListings(String userId) {
     LoggerService.firestore('READ BOOKMARKS', 'users/$userId/bookmarks');
     LoggerService.debug('Setting up bookmark stream for user: $userId');
@@ -47,6 +72,7 @@ class BookmarkService {
         });
   }
 
+  /// Checks if a user has already bookmarked a specific listing.
   Future<bool> isBookmarked(String userId, String listingId) async {
     try {
       final doc = await _getBookmarksCollection(userId).doc(listingId).get();
@@ -60,6 +86,10 @@ class BookmarkService {
     }
   }
 
+  /// Adds a bookmark for a listing to the user's bookmarks collection.
+  ///
+  /// Creates a document at: /users/{userId}/bookmarks/{listingId}
+  /// The listing ID becomes the document ID for quick lookups.
   Future<void> addBookmark(String userId, String listingId) async {
     try {
       LoggerService.firestore(
@@ -92,6 +122,9 @@ class BookmarkService {
     }
   }
 
+  /// Removes a bookmark for a listing from the user's bookmarks collection.
+  ///
+  /// Deletes the document at: /users/{userId}/bookmarks/{listingId}
   Future<void> removeBookmark(String userId, String listingId) async {
     try {
       LoggerService.firestore(
@@ -121,6 +154,10 @@ class BookmarkService {
     }
   }
 
+  /// Toggles the bookmark status for a listing.
+  ///
+  /// If the listing is already bookmarked, it removes the bookmark.
+  /// If not bookmarked, it adds a new bookmark.
   Future<void> toggleBookmark(
     String userId,
     String listingId,
