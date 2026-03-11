@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Listing {
   final String id;
   final String name;
@@ -8,7 +10,7 @@ class Listing {
   final double latitude;
   final double longitude;
   final String createdBy;
-  final DateTime timestamp;
+  final Timestamp timestamp;
 
   Listing({
     required this.id,
@@ -23,33 +25,35 @@ class Listing {
     required this.timestamp,
   });
 
+  factory Listing.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+
+    return Listing(
+      id: doc.id,
+      name: data['name'] ?? '',
+      category: data['category'] ?? '',
+      address: data['address'] ?? '',
+      contactNumber: data['contact'] ?? '',
+      description: data['description'] ?? '',
+      latitude: (data['latitude'] ?? 0).toDouble(),
+      longitude: (data['longitude'] ?? 0).toDouble(),
+      createdBy: data['createdBy'] ?? '',
+      timestamp: data['timestamp'] ?? Timestamp.now(),
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'name': name,
       'category': category,
       'address': address,
-      'contactNumber': contactNumber,
+      'contact': contactNumber,
       'description': description,
       'latitude': latitude,
       'longitude': longitude,
       'createdBy': createdBy,
-      'timestamp': timestamp.toIso8601String(),
+      'timestamp': timestamp,
     };
-  }
-
-  factory Listing.fromMap(Map<String, dynamic> map, String id) {
-    return Listing(
-      id: id,
-      name: map['name'] ?? '',
-      category: map['category'] ?? '',
-      address: map['address'] ?? '',
-      contactNumber: map['contactNumber'] ?? '',
-      description: map['description'] ?? '',
-      latitude: (map['latitude'] ?? 0).toDouble(),
-      longitude: (map['longitude'] ?? 0).toDouble(),
-      createdBy: map['createdBy'] ?? '',
-      timestamp: DateTime.tryParse(map['timestamp'] ?? '') ?? DateTime.now(),
-    );
   }
 
   Listing copyWith({
@@ -62,7 +66,7 @@ class Listing {
     double? latitude,
     double? longitude,
     String? createdBy,
-    DateTime? timestamp,
+    Timestamp? timestamp,
   }) {
     return Listing(
       id: id ?? this.id,

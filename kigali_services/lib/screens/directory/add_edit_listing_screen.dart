@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -27,7 +28,7 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
   late final TextEditingController _latitudeController;
   late final TextEditingController _longitudeController;
 
-  String _selectedCategory = 'Hospital';
+  late String _selectedCategory;
 
   bool get isEditing => widget.listing != null;
 
@@ -35,8 +36,7 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
   void initState() {
     super.initState();
 
-    _nameController =
-        TextEditingController(text: widget.listing?.name ?? '');
+    _nameController = TextEditingController(text: widget.listing?.name ?? '');
     _addressController =
         TextEditingController(text: widget.listing?.address ?? '');
     _contactController =
@@ -49,6 +49,7 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
     _longitudeController = TextEditingController(
       text: widget.listing?.longitude.toString() ?? '',
     );
+
     _selectedCategory = widget.listing?.category ?? 'Hospital';
   }
 
@@ -66,12 +67,11 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
   Future<void> _saveListing() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final authProvider = context.read<AuthProvider>();
-    final listingProvider = context.read<ListingProvider>();
-    final currentUserId = authProvider.user?.uid ?? 'demo_uid_001';
+    final currentUserId = context.read<AuthProvider>().user?.uid;
+    if (currentUserId == null) return;
 
     final listing = Listing(
-      id: widget.listing?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      id: widget.listing?.id ?? '',
       name: _nameController.text.trim(),
       category: _selectedCategory,
       address: _addressController.text.trim(),
@@ -80,13 +80,13 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
       latitude: double.parse(_latitudeController.text.trim()),
       longitude: double.parse(_longitudeController.text.trim()),
       createdBy: widget.listing?.createdBy ?? currentUserId,
-      timestamp: widget.listing?.timestamp ?? DateTime.now(),
+      timestamp: widget.listing?.timestamp ?? Timestamp.now(),
     );
 
     if (isEditing) {
-      await listingProvider.updateListing(listing, currentUserId);
+      await context.read<ListingProvider>().updateListing(listing);
     } else {
-      await listingProvider.addListing(listing, currentUserId);
+      await context.read<ListingProvider>().addListing(listing);
     }
 
     if (!mounted) return;
@@ -145,7 +145,8 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
                 controller: _contactController,
                 label: 'Contact Number',
                 keyboardType: TextInputType.phone,
-                validator: (value) => Validators.requiredField(value, 'Contact Number'),
+                validator: (value) =>
+                    Validators.requiredField(value, 'Contact Number'),
               ),
               const SizedBox(height: 12),
               CustomTextField(
@@ -159,22 +160,26 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
               CustomTextField(
                 controller: _latitudeController,
                 label: 'Latitude',
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                  signed: true,
+                ),
                 validator: (value) => Validators.number(value, 'Latitude'),
               ),
               const SizedBox(height: 12),
               CustomTextField(
                 controller: _longitudeController,
                 label: 'Longitude',
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                  signed: true,
+                ),
                 validator: (value) => Validators.number(value, 'Longitude'),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: provider.isLoading ? null : _saveListing,
-                child: provider.isLoading
-                    ? const CircularProgressIndicator()
-                    : Text(isEditing ? 'Update Listing' : 'Create Listing'),
+                child: Text(isEditing ? 'Update Listing' : 'Create Listing'),
               ),
             ],
           ),

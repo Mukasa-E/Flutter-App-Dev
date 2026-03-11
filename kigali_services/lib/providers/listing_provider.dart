@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+
 import '../models/listing.dart';
 import '../services/firestore_service.dart';
 
@@ -7,105 +9,138 @@ class ListingProvider extends ChangeNotifier {
 
   List<Listing> _allListings = [];
   List<Listing> _myListings = [];
-  String _searchQuery = '';
+
+  bool _isDirectoryLoading = false;
+  bool _isMyListingsLoading = false;
+  bool _isSavingListing = false;
+
   String _selectedCategory = 'All';
-  bool _isLoading = false;
-  String? _error;
+  String _searchQuery = '';
+
+  String? _directoryError;
+  String? _myListingsError;
+  String? _saveError;
+
+  StreamSubscription<List<Listing>>? _allListingsSub;
+  StreamSubscription<List<Listing>>? _myListingsSub;
 
   List<Listing> get allListings => _allListings;
   List<Listing> get myListings => _myListings;
-  bool get isLoading => _isLoading;
-  String? get error => _error;
+
+  bool get isDirectoryLoading => _isDirectoryLoading;
+  bool get isMyListingsLoading => _isMyListingsLoading;
+  bool get isLoading => _isSavingListing;
+
+  String? get directoryError => _directoryError;
+  String? get myListingsError => _myListingsError;
+  String? get saveError => _saveError;
+
   String get selectedCategory => _selectedCategory;
   String get searchQuery => _searchQuery;
 
   List<Listing> get filteredListings {
     return _allListings.where((listing) {
-      final matchesSearch =
-          listing.name.toLowerCase().contains(_searchQuery.toLowerCase());
-
       final matchesCategory =
           _selectedCategory == 'All' || listing.category == _selectedCategory;
 
-      return matchesSearch && matchesCategory;
+      final query = _searchQuery.toLowerCase();
+      final matchesSearch =
+          listing.name.toLowerCase().contains(query) ||
+          listing.address.toLowerCase().contains(query) ||
+          listing.category.toLowerCase().contains(query);
+
+      return matchesCategory && matchesSearch;
     }).toList();
   }
 
-  Future<void> loadAllListings() async {
-    _isLoading = true;
+  void listenToListings() {
+    _isDirectoryLoading = true;
+    _directoryError = null;
     notifyListeners();
 
-    try {
-      _allListings = await _firestoreService.getAllListings();
-      _error = null;
-    } catch (e) {
-      _error = e.toString();
-    }
-
-    _isLoading = false;
-    notifyListeners();
+    _allListingsSub?.cancel();
+    _allListingsSub = _firestoreService.getListings().listen(
+      (listings) {
+        _allListings = listings;
+        _isDirectoryLoading = false;
+        _directoryError = null;
+        notifyListeners();
+      },
+      onError: (error) {
+        _isDirectoryLoading = false;
+        _directoryError = error.toString();
+        notifyListeners();
+      },
+    );
   }
 
-  Future<void> loadMyListings(String uid) async {
-    _isLoading = true;
+  void listenToMyListings(String uid) {
+    _isMyListingsLoading = true;
+    _myListingsError = null;
     notifyListeners();
 
-    try {
-      _myListings = await _firestoreService.getListingsByUser(uid);
-      _error = null;
-    } catch (e) {
-      _error = e.toString();
-    }
-
-    _isLoading = false;
-    notifyListeners();
+    _myListingsSub?.cancel();
+    _myListingsSub = _firestoreService
+        .getListingsByUser(uid)
+        .listen(
+          (listings) {
+            _myListings = listings;
+            _isMyListingsLoading = false;
+            _myListingsError = null;
+            notifyListeners();
+          },
+          onError: (error) {
+            _isMyListingsLoading = false;
+            _myListingsError = error.toString();
+            notifyListeners();
+          },
+        );
   }
 
-  Future<void> addListing(Listing listing, String currentUserId) async {
-    _isLoading = true;
-    notifyListeners();
-
+  Future<void> addListing(Listing listing) async {
     try {
-      await _firestoreService.addListing(listing);
-      await loadAllListings();
-      await loadMyListings(currentUserId);
-    } catch (e) {
-      _error = e.toString();
-    }
+      _isSavingListing = true;
+      _saveError = null;
+      notifyListeners();
 
-    _isLoading = false;
-    notifyListeners();
+      await _firestoreService.createListing(listing);
+
+      _isSavingListing = false;
+      _saveError = null;
+      notifyListeners();
+    } catch (e) {
+      _isSavingListing = false;
+      _saveError = e.toString();
+      notifyListeners();
+      rethrow;
+    }
   }
 
-  Future<void> updateListing(Listing listing, String currentUserId) async {
-    _isLoading = true;
-    notifyListeners();
-
+  Future<void> updateListing(Listing listing) async {
     try {
+      _isSavingListing = true;
+      _saveError = null;
+      notifyListeners();
+
       await _firestoreService.updateListing(listing);
-      await loadAllListings();
-      await loadMyListings(currentUserId);
-    } catch (e) {
-      _error = e.toString();
-    }
 
-    _isLoading = false;
-    notifyListeners();
+      _isSavingListing = false;
+      _saveError = null;
+      notifyListeners();
+    } catch (e) {
+      _isSavingListing = false;
+      _saveError = e.toString();
+      notifyListeners();
+      rethrow;
+    }
   }
 
-  Future<void> deleteListing(String id, String currentUserId) async {
-    _isLoading = true;
-    notifyListeners();
+  Future<void> deleteListing(String id) async {
+    await _firestoreService.deleteListing(id);
+  }
 
-    try {
-      await _firestoreService.deleteListing(id);
-      await loadAllListings();
-      await loadMyListings(currentUserId);
-    } catch (e) {
-      _error = e.toString();
-    }
-
-    _isLoading = false;
+  void setSelectedCategory(String value) {
+    _selectedCategory = value;
     notifyListeners();
   }
 
@@ -114,8 +149,10 @@ class ListingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setSelectedCategory(String value) {
-    _selectedCategory = value;
-    notifyListeners();
+  @override
+  void dispose() {
+    _allListingsSub?.cancel();
+    _myListingsSub?.cancel();
+    super.dispose();
   }
 }

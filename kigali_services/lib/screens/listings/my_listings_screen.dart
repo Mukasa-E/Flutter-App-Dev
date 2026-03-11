@@ -16,45 +16,39 @@ class MyListingsScreen extends StatefulWidget {
 }
 
 class _MyListingsScreenState extends State<MyListingsScreen> {
-  bool _isInitialized = false;
-
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_isInitialized) {
-      _isInitialized = true;
-      final uid = context.read<AuthProvider>().user?.uid ?? 'demo_uid_001';
-      Future.microtask(() {
-        context.read<ListingProvider>().loadMyListings(uid);
-      });
-    }
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      if (!mounted) return;
+      final uid = context.read<AuthProvider>().user?.uid;
+      if (uid != null) {
+        context.read<ListingProvider>().listenToMyListings(uid);
+      }
+    });
   }
 
   Future<void> _confirmDelete(String id) async {
-    final uid = context.read<AuthProvider>().user?.uid ?? 'demo_uid_001';
-
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text('Delete Listing'),
-          content: const Text('Are you sure you want to delete this listing?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Listing'),
+        content: const Text('Are you sure you want to delete this listing?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
 
     if (confirmed == true) {
-      await context.read<ListingProvider>().deleteListing(id, uid);
+      await context.read<ListingProvider>().deleteListing(id);
     }
   }
 
@@ -67,46 +61,60 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
         title: const Text('My Listings'),
         centerTitle: true,
       ),
-      body: provider.isLoading
+      body: provider.isMyListingsLoading
           ? const Center(child: CircularProgressIndicator())
-          : provider.myListings.isEmpty
-              ? const EmptyState(
-                  message: 'You have not created any listings yet.',
-                  icon: Icons.add_location_alt_outlined,
+          : provider.myListingsError != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      'My Listings error:\n${provider.myListingsError}',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: provider.myListings.length,
-                  itemBuilder: (context, index) {
-                    final listing = provider.myListings[index];
-                    return ListingCard(
-                      listing: listing,
-                      showActions: true,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ListingDetailScreen(listing: listing),
-                          ),
+              : provider.myListings.isEmpty
+                  ? const EmptyState(
+                      message: 'You have not created any listings yet.',
+                      icon: Icons.add_location_alt_outlined,
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: provider.myListings.length,
+                      itemBuilder: (context, index) {
+                        final listing = provider.myListings[index];
+                        return ListingCard(
+                          listing: listing,
+                          showActions: true,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    ListingDetailScreen(listing: listing),
+                              ),
+                            );
+                          },
+                          onEdit: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    AddEditListingScreen(listing: listing),
+                              ),
+                            );
+                          },
+                          onDelete: () => _confirmDelete(listing.id),
                         );
                       },
-                      onEdit: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AddEditListingScreen(listing: listing),
-                          ),
-                        );
-                      },
-                      onDelete: () => _confirmDelete(listing.id),
-                    );
-                  },
-                ),
+                    ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const AddEditListingScreen()),
+            MaterialPageRoute(
+              builder: (_) => const AddEditListingScreen(),
+            ),
           );
         },
         child: const Icon(Icons.add),

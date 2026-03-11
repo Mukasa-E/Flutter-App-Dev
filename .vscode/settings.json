@@ -1,0 +1,7 @@
+{
+    "inlineChat.notebookAgent": true,
+    "inlineChat.finishOnType": true,
+    "inlineChat.enableV2": true,
+    "inlineChat.affordance": "editor",
+    "inlineChat.defaultModel": "Claude Haiku 4.5 (copilot)"
+}
