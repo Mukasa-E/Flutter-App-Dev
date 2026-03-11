@@ -3,6 +3,10 @@ import 'package:flutter/foundation.dart';
 class LoggerService {
   static const String _prefix = '[Kigali Services]';
 
+  static void debug(String message) {
+    debugPrint('$_prefix [DEBUG] $message');
+  }
+
   static void info(String message, [dynamic error, StackTrace? stackTrace]) {
     debugPrint('$_prefix [INFO] $message');
     if (error != null) debugPrint('Error: $error');

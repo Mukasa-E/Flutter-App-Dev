@@ -13,14 +13,22 @@ class BookmarkService {
 
   Stream<List<String>> getBookmarkedListings(String userId) {
     LoggerService.firestore('READ BOOKMARKS', 'users/$userId/bookmarks');
+    LoggerService.debug('Setting up bookmark stream for user: $userId');
     return _getBookmarksCollection(userId)
         .snapshots()
         .map((snapshot) {
           final bookmarks = snapshot.docs
-              .map((doc) => doc['listingId'] as String)
+              .map((doc) {
+                final listingId = doc['listingId'] as String?;
+                LoggerService.debug(
+                  'Loaded bookmark doc: ${doc.id} with listingId: $listingId',
+                );
+                return listingId ?? '';
+              })
+              .where((id) => id.isNotEmpty)
               .toList();
           LoggerService.info(
-            'Loaded ${bookmarks.length} bookmarks for user $userId',
+            'Loaded ${bookmarks.length} bookmarks for user $userId: $bookmarks',
           );
           return bookmarks;
         })
@@ -31,6 +39,10 @@ class BookmarkService {
             '',
             error,
           );
+          LoggerService.error(
+            'Failed to read bookmarks for user $userId: $error',
+            error,
+          );
           throw error;
         });
   }
@@ -38,6 +50,9 @@ class BookmarkService {
   Future<bool> isBookmarked(String userId, String listingId) async {
     try {
       final doc = await _getBookmarksCollection(userId).doc(listingId).get();
+      LoggerService.debug(
+        'Checked bookmark status for $listingId: ${doc.exists}',
+      );
       return doc.exists;
     } catch (e) {
       LoggerService.error('Failed to check bookmark status', e);
@@ -51,6 +66,9 @@ class BookmarkService {
         'ADD BOOKMARK',
         'users/$userId/bookmarks',
         listingId,
+      );
+      LoggerService.debug(
+        'Adding bookmark for user: $userId, listing: $listingId',
       );
       await _getBookmarksCollection(userId).doc(listingId).set({
         'listingId': listingId,
@@ -66,6 +84,10 @@ class BookmarkService {
         listingId,
         e,
       );
+      LoggerService.error(
+        'Failed to add bookmark for listing $listingId: $e',
+        e,
+      );
       rethrow;
     }
   }
@@ -76,6 +98,9 @@ class BookmarkService {
         'REMOVE BOOKMARK',
         'users/$userId/bookmarks',
         listingId,
+      );
+      LoggerService.debug(
+        'Removing bookmark for user: $userId, listing: $listingId',
       );
       await _getBookmarksCollection(userId).doc(listingId).delete();
       LoggerService.info(
@@ -88,6 +113,10 @@ class BookmarkService {
         listingId,
         e,
       );
+      LoggerService.error(
+        'Failed to remove bookmark for listing $listingId: $e',
+        e,
+      );
       rethrow;
     }
   }
@@ -97,6 +126,9 @@ class BookmarkService {
     String listingId,
     bool isCurrentlyBookmarked,
   ) async {
+    LoggerService.debug(
+      'Toggling bookmark for user: $userId, listing: $listingId, currently bookmarked: $isCurrentlyBookmarked',
+    );
     if (isCurrentlyBookmarked) {
       await removeBookmark(userId, listingId);
     } else {

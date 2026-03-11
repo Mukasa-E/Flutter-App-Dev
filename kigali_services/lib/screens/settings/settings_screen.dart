@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/logger_service.dart';
 import '../../utils/seed_data.dart';
 import '../auth/login_screen.dart';
+import '../debug/bookmark_debug_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -116,6 +117,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 12),
               ],
             ),
+          ),
+          const SizedBox(height: 20),
+          // Debug button
+          ListTile(
+            title: const Text('Bookmark Debug'),
+            subtitle: const Text('View bookmark state and test persistence'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const BookmarkDebugScreen()),
+              );
+            },
           ),
           const SizedBox(height: 20),
           ElevatedButton.icon(

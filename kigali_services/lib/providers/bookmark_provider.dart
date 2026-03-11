@@ -55,6 +55,14 @@ class BookmarkProvider extends ChangeNotifier {
   Future<void> toggleBookmark(String listingId) async {
     if (_currentUserId == null) {
       _error = 'User not authenticated';
+      LoggerService.error('Cannot toggle bookmark: user not authenticated');
+      notifyListeners();
+      return;
+    }
+
+    if (listingId.isEmpty) {
+      _error = 'Invalid listing ID - cannot bookmark';
+      LoggerService.error('Cannot toggle bookmark: listing ID is empty');
       notifyListeners();
       return;
     }
@@ -68,6 +76,7 @@ class BookmarkProvider extends ChangeNotifier {
       } else {
         _bookmarkedIds.add(listingId);
       }
+      _error = null;
       notifyListeners();
 
       // Update in Firestore
@@ -79,12 +88,13 @@ class BookmarkProvider extends ChangeNotifier {
       LoggerService.info('Toggled bookmark for listing $listingId');
     } catch (e) {
       // Revert optimistic update on error
-      if (isBookmarked(listingId)) {
+      final isCurrentlyBookmarked = isBookmarked(listingId);
+      if (isCurrentlyBookmarked) {
         _bookmarkedIds.remove(listingId);
       } else {
         _bookmarkedIds.add(listingId);
       }
-      _error = e.toString();
+      _error = 'Failed to bookmark: ${e.toString()}';
       LoggerService.error('Failed to toggle bookmark', e);
       notifyListeners();
     }
