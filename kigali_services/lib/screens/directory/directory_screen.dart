@@ -53,7 +53,9 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                       label: Text(category),
                       selected: isSelected,
                       onSelected: (selected) {
-                        provider.setSelectedCategory(selected ? category : 'All');
+                        provider.setSelectedCategory(
+                          selected ? category : 'All',
+                        );
                       },
                     ),
                   );
@@ -72,47 +74,74 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
             const SizedBox(height: 20),
             Text(
               'Near You',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Expanded(
               child: provider.isDirectoryLoading
                   ? const Center(child: CircularProgressIndicator())
                   : provider.directoryError != null
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(
-                              'Directory error:\n${provider.directoryError}',
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              size: 48,
+                              color: Colors.red,
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Unable to Load Listings',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              provider.directoryError!,
                               textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 12),
                             ),
-                          ),
-                        )
-                      : provider.filteredListings.isEmpty
-                          ? const EmptyState(
-                              message: 'No listings found.',
-                              icon: Icons.location_off,
-                            )
-                          : ListView.builder(
-                              itemCount: provider.filteredListings.length,
-                              itemBuilder: (context, index) {
-                                final listing = provider.filteredListings[index];
-                                return ListingCard(
-                                  listing: listing,
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            ListingDetailScreen(listing: listing),
-                                      ),
-                                    );
-                                  },
-                                );
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () {
+                                provider.listenToListings();
                               },
+                              child: const Text('Retry'),
                             ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : provider.filteredListings.isEmpty
+                  ? const EmptyState(
+                      message: 'No listings found.',
+                      icon: Icons.location_off,
+                    )
+                  : ListView.builder(
+                      itemCount: provider.filteredListings.length,
+                      itemBuilder: (context, index) {
+                        final listing = provider.filteredListings[index];
+                        return ListingCard(
+                          listing: listing,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    ListingDetailScreen(listing: listing),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
             ),
           ],
         ),

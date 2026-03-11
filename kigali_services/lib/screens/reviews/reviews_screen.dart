@@ -22,13 +22,10 @@ class ReviewsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reviewProvider = context.watch<ReviewProvider>();
-    final allReviews = reviewProvider.allReviews;
+    final allReviews = reviewProvider.getAllReviews();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Reviews'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Reviews'), centerTitle: true),
       body: allReviews.isEmpty
           ? const EmptyState(
               message: 'No reviews yet',
@@ -73,8 +70,8 @@ class ReviewsScreen extends StatelessWidget {
                                 i < review.rating.floor()
                                     ? Icons.star
                                     : (i < review.rating
-                                        ? Icons.star_half
-                                        : Icons.star_border),
+                                          ? Icons.star_half
+                                          : Icons.star_border),
                                 color: Colors.amber,
                                 size: 18,
                               );
