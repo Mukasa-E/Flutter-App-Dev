@@ -57,64 +57,89 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
     final provider = context.watch<ListingProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Listings'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('My Listings'), centerTitle: true),
       body: provider.isMyListingsLoading
           ? const Center(child: CircularProgressIndicator())
           : provider.myListingsError != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      'My Listings error:\n${provider.myListingsError}',
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Unable to Load Listings',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      provider.myListingsError ?? 'Unknown error',
                       textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12),
                     ),
-                  ),
-                )
-              : provider.myListings.isEmpty
-                  ? const EmptyState(
-                      message: 'You have not created any listings yet.',
-                      icon: Icons.add_location_alt_outlined,
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: provider.myListings.length,
-                      itemBuilder: (context, index) {
-                        final listing = provider.myListings[index];
-                        return ListingCard(
-                          listing: listing,
-                          showActions: true,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    ListingDetailScreen(listing: listing),
-                              ),
-                            );
-                          },
-                          onEdit: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    AddEditListingScreen(listing: listing),
-                              ),
-                            );
-                          },
-                          onDelete: () => _confirmDelete(listing.id),
-                        );
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        final uid = context.read<AuthProvider>().user?.uid;
+                        if (uid != null) {
+                          context.read<ListingProvider>().listenToMyListings(
+                            uid,
+                          );
+                        }
                       },
+                      child: const Text('Retry'),
                     ),
+                  ],
+                ),
+              ),
+            )
+          : provider.myListings.isEmpty
+          ? const EmptyState(
+              message: 'You have not created any listings yet.',
+              icon: Icons.add_location_alt_outlined,
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: provider.myListings.length,
+              itemBuilder: (context, index) {
+                final listing = provider.myListings[index];
+                return ListingCard(
+                  listing: listing,
+                  showActions: true,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ListingDetailScreen(listing: listing),
+                      ),
+                    );
+                  },
+                  onEdit: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AddEditListingScreen(listing: listing),
+                      ),
+                    );
+                  },
+                  onDelete: () => _confirmDelete(listing.id),
+                );
+              },
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => const AddEditListingScreen(),
-            ),
+            MaterialPageRoute(builder: (_) => const AddEditListingScreen()),
           );
         },
         child: const Icon(Icons.add),

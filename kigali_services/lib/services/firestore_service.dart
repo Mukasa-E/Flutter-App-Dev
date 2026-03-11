@@ -28,34 +28,40 @@ class FirestoreService {
 
   Stream<List<Listing>> getListingsByUser(String uid) {
     LoggerService.firestore('READ USER LISTINGS', 'listings', uid);
+    // Note: Firestore requires a composite index for where() + orderBy()
+    // We fetch all listings and filter/sort in-memory as a workaround
     return _listings
-        .where('createdBy', isEqualTo: uid)
-        .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {
-          LoggerService.info(
-            'Fetched ${snapshot.docs.length} listings for user $uid',
-          );
-          return snapshot.docs
+          final listings = snapshot.docs
               .map((doc) => Listing.fromFirestore(doc))
               .toList();
+          // Filter by user in-memory
+          final userListings = listings
+              .where((listing) => listing.createdBy == uid)
+              .toList();
+          // Sort by timestamp descending
+          userListings.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          LoggerService.info(
+            'Fetched ${userListings.length} listings for user $uid',
+          );
+          return userListings;
         })
         .handleError((error) {
-          LoggerService.firestore(
-            'READ USER LISTINGS ERROR',
-            'listings',
-            uid,
-            error,
-          );
+          LoggerService.error('Error reading user listings for $uid', error);
           throw error;
         });
   }
 
-  Future<void> createListing(Listing listing) async {
+  Future<String> createListing(Listing listing) async {
     try {
       LoggerService.firestore('CREATE', 'listings', listing.name);
-      await _listings.add(listing.toMap());
-      LoggerService.info('Successfully created listing: ${listing.name}');
+      final docRef = await _listings.add(listing.toMap());
+      final docId = docRef.id;
+      LoggerService.info(
+        'Successfully created listing: ${listing.name} with ID: $docId',
+      );
+      return docId;
     } catch (e) {
       LoggerService.firestore('CREATE ERROR', 'listings', listing.name, e);
       rethrow;

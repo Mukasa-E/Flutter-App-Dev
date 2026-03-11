@@ -11,25 +11,27 @@ class ReviewService {
 
   Stream<List<Review>> getReviewsForListing(String listingId) {
     LoggerService.firestore('READ REVIEWS', 'reviews/$listingId');
+    // Note: Firestore requires a composite index for where() + orderBy()
+    // We fetch all reviews and filter/sort in-memory as a workaround
     return _reviews
-        .where('listingId', isEqualTo: listingId)
-        .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {
-          LoggerService.info(
-            'Fetched ${snapshot.docs.length} reviews for listing $listingId',
-          );
-          return snapshot.docs
+          final reviews = snapshot.docs
               .map((doc) => Review.fromMap(doc.data(), doc.id))
               .toList();
+          // Filter by listing in-memory
+          final listingReviews = reviews
+              .where((review) => review.listingId == listingId)
+              .toList();
+          // Sort by timestamp descending
+          listingReviews.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          LoggerService.info(
+            'Fetched ${listingReviews.length} reviews for listing $listingId',
+          );
+          return listingReviews;
         })
         .handleError((error) {
-          LoggerService.firestore(
-            'READ REVIEWS ERROR',
-            'reviews/$listingId',
-            '',
-            error,
-          );
+          LoggerService.error('Error reading reviews for $listingId', error);
           throw error;
         });
   }

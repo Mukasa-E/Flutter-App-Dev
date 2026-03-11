@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../models/listing.dart';
+import '../providers/bookmark_provider.dart';
 
 class ListingCard extends StatelessWidget {
   final Listing listing;
@@ -20,6 +22,9 @@ class ListingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bookmarkProvider = context.watch<BookmarkProvider>();
+    final isBookmarked = bookmarkProvider.isBookmarked(listing.id);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -30,25 +35,44 @@ class ListingCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                listing.name,
-                style: Theme.of(context).textTheme.titleMedium,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          listing.name,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(listing.category),
+                        const SizedBox(height: 4),
+                        Text(listing.address),
+                        const SizedBox(height: 4),
+                        Text(listing.contactNumber),
+                      ],
+                    ),
+                  ),
+                  // Bookmark button
+                  IconButton(
+                    onPressed: () {
+                      bookmarkProvider.toggleBookmark(listing.id);
+                    },
+                    icon: Icon(
+                      isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                      color: isBookmarked ? Colors.amber : null,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 6),
-              Text(listing.category),
-              const SizedBox(height: 4),
-              Text(listing.address),
-              const SizedBox(height: 4),
-              Text(listing.contactNumber),
               if (showActions) ...[
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    IconButton(
-                      onPressed: onEdit,
-                      icon: const Icon(Icons.edit),
-                    ),
+                    IconButton(onPressed: onEdit, icon: const Icon(Icons.edit)),
                     IconButton(
                       onPressed: onDelete,
                       icon: const Icon(Icons.delete),

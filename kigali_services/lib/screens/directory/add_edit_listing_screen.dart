@@ -37,12 +37,15 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
     super.initState();
 
     _nameController = TextEditingController(text: widget.listing?.name ?? '');
-    _addressController =
-        TextEditingController(text: widget.listing?.address ?? '');
-    _contactController =
-        TextEditingController(text: widget.listing?.contactNumber ?? '');
-    _descriptionController =
-        TextEditingController(text: widget.listing?.description ?? '');
+    _addressController = TextEditingController(
+      text: widget.listing?.address ?? '',
+    );
+    _contactController = TextEditingController(
+      text: widget.listing?.contactNumber ?? '',
+    );
+    _descriptionController = TextEditingController(
+      text: widget.listing?.description ?? '',
+    );
     _latitudeController = TextEditingController(
       text: widget.listing?.latitude.toString() ?? '',
     );
@@ -71,7 +74,9 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
     if (currentUserId == null) return;
 
     final listing = Listing(
-      id: widget.listing?.id ?? '',
+      id:
+          widget.listing?.id ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
       name: _nameController.text.trim(),
       category: _selectedCategory,
       address: _addressController.text.trim(),
@@ -98,9 +103,7 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
     final provider = context.watch<ListingProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(isEditing ? 'Edit Listing' : 'Add Listing'),
-      ),
+      appBar: AppBar(title: Text(isEditing ? 'Edit Listing' : 'Add Listing')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -138,7 +141,8 @@ class _AddEditListingScreenState extends State<AddEditListingScreen> {
               CustomTextField(
                 controller: _addressController,
                 label: 'Address',
-                validator: (value) => Validators.requiredField(value, 'Address'),
+                validator: (value) =>
+                    Validators.requiredField(value, 'Address'),
               ),
               const SizedBox(height: 12),
               CustomTextField(

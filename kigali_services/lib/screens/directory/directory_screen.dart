@@ -20,7 +20,10 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
     super.initState();
     Future.microtask(() {
       if (!mounted) return;
-      context.read<ListingProvider>().listenToListings();
+      final provider = context.read<ListingProvider>();
+      // Reset category filter when entering
+      provider.setSelectedCategory('All');
+      provider.listenToListings();
     });
   }
 
